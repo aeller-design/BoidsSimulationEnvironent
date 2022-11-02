@@ -188,22 +188,12 @@ class Flock(pygame.sprite.Sprite):
         r2 = params.ALIGN_RADIUS * params.ALIGN_RADIUS
         # find the neighbors
         boids = list(self.normal_boids)
-        neighbors = [[] for boid in boids]
         for i, boid in enumerate(boids):
-            for j, other_boid in enumerate(boids):
-                if j in neighbors[i]:
-                    continue
-                elif boid == other_boid:
-                    continue
-                elif utils.dist2(boid.pos, other_boid.pos) < r2:
-                    neighbors[i].append(j)
-                    neighbors[j].append(i)
-        for i, boid in enumerate(boids):
-            number_of_neighbors = len(neighbors[i])
+            number_of_neighbors = len(self.get_neighbors(boid))
             if number_of_neighbors:
                 desired = np.zeros(2)
-                for j in neighbors[i]:
-                    desired += boids[j].vel
+                for j in self.get_neighbors(boid):
+                    desired += j.vel
                 boid.steer(desired / number_of_neighbors - boid.vel)
 
     def flock(self):
