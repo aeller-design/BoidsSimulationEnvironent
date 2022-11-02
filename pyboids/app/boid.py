@@ -30,6 +30,7 @@ class Boid(pygame.sprite.Sprite):
         self.mass = mass
         self.steering = np.zeros(2)
         self.wandering_angle = utils.randrange(-np.pi, np.pi)
+        self.hunger = params.MAX_HUNGER
 
     @property
     def pos(self):
@@ -64,10 +65,14 @@ class Boid(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.base_image, angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def update(self):
+    def update(self, motion, click):
         self.vel = utils.truncate(
             self.vel + self.steering, params.BOID_MAX_SPEED)
         self.pos = self.pos + self.vel
+        if click and click.type == pygame.USEREVENT :
+            self.hunger -= params.HUNGER_LOSS
+            print("hunger is now: " + str(self.hunger))
+            # TODO: handle starvation death here
 
     def display(self, screen, debug=False):
         screen.blit(self.image, self.rect)

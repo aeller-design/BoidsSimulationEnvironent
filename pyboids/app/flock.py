@@ -226,7 +226,7 @@ class Flock(pygame.sprite.Sprite):
         self.remain_in_screen()
         # update all boids
         for boid in self.boids:
-            boid.update()
+            boid.update(motion_event, click_event)
 
     def display(self, screen):
         for obstacle in self.obstacles:
