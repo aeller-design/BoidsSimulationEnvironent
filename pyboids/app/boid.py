@@ -71,7 +71,7 @@ class Boid(pygame.sprite.Sprite):
         self.pos = self.pos + self.vel
         if click and click.type == pygame.USEREVENT :
             self.hunger -= params.HUNGER_LOSS
-            print("hunger is now: " + str(self.hunger))
+            # print("hunger is now: " + str(self.hunger))
             # TODO: handle starvation death here
 
     def display(self, screen, debug=False):
