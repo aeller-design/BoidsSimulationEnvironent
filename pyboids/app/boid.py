@@ -87,3 +87,6 @@ class LeaderBoid(Boid):
     """A boid that others boids want to follow."""
 
     image_file = 'leader-boid.png'
+
+class PredatorBoid(Boid):
+    image_file = 'predator-boid.png'

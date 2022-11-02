@@ -1,9 +1,11 @@
 """Flock class."""
+from difflib import get_close_matches
 import pygame
 import numpy as np
 from . import params, utils
-from .boid import Boid, LeaderBoid
+from .boid import Boid, LeaderBoid, PredatorBoid
 from .obstacle import Obstacle
+import math
 
 
 class Flock(pygame.sprite.Sprite):
@@ -13,6 +15,7 @@ class Flock(pygame.sprite.Sprite):
         super().__init__()
         self.normal_boids = pygame.sprite.Group()
         self.leader_boid = pygame.sprite.GroupSingle()
+        self.predator_boids = pygame.sprite.Group()
         self.boids = pygame.sprite.Group()
         self.obstacles = pygame.sprite.Group()
         self.behaviours = {
@@ -24,7 +27,7 @@ class Flock(pygame.sprite.Sprite):
             'align': False,
             'separate': False,
         }
-        self.kinds = ['normal-boid', 'leader-boid', 'obstacle']
+        self.kinds = ['normal-boid', 'leader-boid', 'obstacle', 'predator-boid']
         self.add_kind = 'normal-boid'
 
     def switch_element(self):
@@ -47,6 +50,9 @@ class Flock(pygame.sprite.Sprite):
             self.boids.add(self.leader_boid)
         elif self.add_kind == 'obstacle':
             self.obstacles.add(Obstacle(pos=pos))
+        elif self.add_kind == 'predator-boid':
+            self.predator_boids.add(PredatorBoid(pos=np.array(pos), vel=vel))
+            self.boids.add(self.predator_boids)
 
     def remain_in_screen(self):
         for boid in self.boids:
@@ -89,6 +95,29 @@ class Flock(pygame.sprite.Sprite):
         t = int(utils.norm(target_pos - boid.pos) / params.BOID_MAX_SPEED)
         future_pos = target_pos + t * target_vel
         self.seek_single(future_pos, boid)
+
+    def pursue_prey(self, predator):
+        closest = self.get_closest(predator)
+        if closest is not None:
+            self.pursue_single(closest.pos, closest.vel, predator)
+
+    def get_closest(self, ref_boid):
+        closest = None
+        min_dist = None
+        ref_pos = ref_boid.pos
+        for boid in self.normal_boids:
+            dist = utils.dist(ref_pos, boid.pos)
+            if dist < 15:
+                self.boids.remove(boid)
+                self.normal_boids.remove(boid)
+            elif closest is None:
+                closest = boid
+                min_dist = dist
+            else:
+                if dist < min_dist:
+                    min_dist = dist
+                    closest = boid
+        return closest
 
     def pursue(self, target_boid):
         """Make all normal boids pursue a target boid with anticipation."""
@@ -218,6 +247,8 @@ class Flock(pygame.sprite.Sprite):
             self.behaviours['pursue'] and self.pursue(target)
             self.behaviours['escape'] and self.escape(target)
             self.behaviours['follow leader'] and self.follow_leader(target)
+        for boid in self.predator_boids:
+            self.pursue_prey(boid)
         self.behaviours['wander'] and self.wander()
         if self.behaviours['avoid collision'] and self.obstacles:
             self.avoid_collision()
