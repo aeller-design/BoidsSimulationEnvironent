@@ -154,7 +154,7 @@ class Flock(pygame.sprite.Sprite):
     def separate_single(self, boid):
         number_of_neighbors = 0
         force = np.zeros(2)
-        for other_boid in self.boids:
+        for other_boid in self.get_neighbors(boid):
             if boid == other_boid:
                 continue
             elif pygame.sprite.collide_rect(boid, other_boid):
@@ -166,7 +166,7 @@ class Flock(pygame.sprite.Sprite):
 
     def separate(self):
         for boid in self.boids:
-            print(self.get_neighbors(boid))
+            #print(self.get_neighbors(boid))
             self.separate_single(boid)
 
     def follow_leader(self, leader):
@@ -229,17 +229,17 @@ class Flock(pygame.sprite.Sprite):
             self.boid_neighborhoods[label] = {}
 
         i = 0
-        for coord in boid_coords_list:  
+        for boid in self.boids:  
             #print(i)
-            print(np.unique(clustering.labels_))
-            self.boid_labels[coord] = clustering.labels_[i]          
-            self.boid_neighborhoods[clustering.labels_[i]][coord] = (coord,label)
+            #print(np.unique(clustering.labels_))
+            self.boid_labels[boid] = clustering.labels_[i]          
+            self.boid_neighborhoods[clustering.labels_[i]][boid] = (boid,label)
             i = i + 1
         #print(self.boid_neighborhoods)
         #print(self.boid_labels)
 
     def get_neighbors(self, boid):
-        return self.boid_neighborhoods[self.boid_labels[boid.rect.center]].keys()
+        return self.boid_neighborhoods[self.boid_labels[boid]].keys()
 
     def update(self, motion_event, click_event):
         if len(self.boids) > 1:
