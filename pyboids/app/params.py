@@ -78,3 +78,10 @@ ALIGN_RADIUS = 200
 COHERE_RADIUS = 300
 # multi-threading parameters
 N_CPU = os.cpu_count()
+
+# Hunger Interval Ticks
+HUNGER_INTERVAL_TICK = 3000
+# Max Hunger
+MAX_HUNGER = 100
+# Hunger loss on tick
+HUNGER_LOSS = 1
