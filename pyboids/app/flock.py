@@ -183,7 +183,7 @@ class Flock(pygame.sprite.Sprite):
     def separate_single(self, boid):
         number_of_neighbors = 0
         force = np.zeros(2)
-        for other_boid in self.boids:
+        for other_boid in self.get_neighbors(boid):
             if boid == other_boid:
                 continue
             elif pygame.sprite.collide_rect(boid, other_boid):
@@ -195,6 +195,7 @@ class Flock(pygame.sprite.Sprite):
 
     def separate(self):
         for boid in self.boids:
+            #print(self.get_neighbors(boid))
             self.separate_single(boid)
 
     def follow_leader(self, leader):
@@ -216,22 +217,12 @@ class Flock(pygame.sprite.Sprite):
         r2 = params.ALIGN_RADIUS * params.ALIGN_RADIUS
         # find the neighbors
         boids = list(self.normal_boids)
-        neighbors = [[] for boid in boids]
         for i, boid in enumerate(boids):
-            for j, other_boid in enumerate(boids):
-                if j in neighbors[i]:
-                    continue
-                elif boid == other_boid:
-                    continue
-                elif utils.dist2(boid.pos, other_boid.pos) < r2:
-                    neighbors[i].append(j)
-                    neighbors[j].append(i)
-        for i, boid in enumerate(boids):
-            number_of_neighbors = len(neighbors[i])
+            number_of_neighbors = len(self.get_neighbors(boid))
             if number_of_neighbors:
                 desired = np.zeros(2)
-                for j in neighbors[i]:
-                    desired += boids[j].vel
+                for j in self.get_neighbors(boid):
+                    desired += j.vel
                 boid.steer(desired / number_of_neighbors - boid.vel)
 
     def flock(self):
@@ -240,7 +231,39 @@ class Flock(pygame.sprite.Sprite):
         for boid in self.boids:
             self.separate_single(boid)
 
+    def get_boids_coords(self):
+        boid_sprite_list = self.boids.sprites()
+        return [boid.rect.center for boid in boid_sprite_list] 
+
+    def update_neighborhoods(self):
+        from sklearn.cluster import DBSCAN
+
+        self.boid_neighborhoods = {}
+        self.boid_labels = {}
+        boid_coords_list = self.get_boids_coords()
+        #this_boid_neighborhood = self.boid_neighnorhoods[(boid.x,boid.y)]
+        clustering = DBSCAN(eps=100, min_samples=2).fit(boid_coords_list)
+
+        for label in np.unique(clustering.labels_):
+            self.boid_neighborhoods[label] = {}
+
+        i = 0
+        for boid in self.boids:  
+            #print(i)
+            #print(np.unique(clustering.labels_))
+            self.boid_labels[boid] = clustering.labels_[i]          
+            self.boid_neighborhoods[clustering.labels_[i]][boid] = (boid,label)
+            i = i + 1
+        #print(self.boid_neighborhoods)
+        #print(self.boid_labels)
+
+    def get_neighbors(self, boid):
+        return self.boid_neighborhoods[self.boid_labels[boid]].keys()
+
     def update(self, motion_event, click_event):
+        if len(self.boids) > 1:
+            self.update_neighborhoods()
+
         # apply steering behaviours
         if self.leader_boid:
             target = self.leader_boid.sprite
