@@ -5,6 +5,7 @@ import numpy as np
 from . import params, utils
 from .boid import Boid, LeaderBoid, PredatorBoid
 from .obstacle import Obstacle
+from sklearn.cluster import DBSCAN
 import math
 
 
@@ -97,7 +98,8 @@ class Flock(pygame.sprite.Sprite):
         self.seek_single(future_pos, boid)
 
     def pursue_prey(self, predator):
-        closest = self.get_closest(predator)
+        # closest = self.get_closest(predator)
+        closest = self.get_closest_aligned(predator)
         if closest is not None:
             self.pursue_single(closest.pos, closest.vel, predator)
 
@@ -105,18 +107,43 @@ class Flock(pygame.sprite.Sprite):
         closest = None
         min_dist = None
         ref_pos = ref_boid.pos
-        for boid in self.normal_boids:
-            dist = utils.dist(ref_pos, boid.pos)
-            if dist < 15:
-                self.boids.remove(boid)
-                self.normal_boids.remove(boid)
-            elif closest is None:
-                closest = boid
-                min_dist = dist
-            else:
-                if dist < min_dist:
-                    min_dist = dist
+        for boid in self.get_neighbors(ref_boid):
+            if boid in self.normal_boids:
+                dist = utils.dist(ref_pos, boid.pos)
+                if dist < 15:
+                    self.boids.remove(boid)
+                    self.normal_boids.remove(boid)
+                elif closest is None:
                     closest = boid
+                    min_dist = dist
+                else:
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest = boid
+        return closest
+
+    def get_closest_aligned(self, ref_boid):
+        closest = None
+        min_dist = None
+        ref_pos = ref_boid.pos
+        for boid in self.get_neighbors(ref_boid):
+            if boid in self.normal_boids:
+                dist = utils.dist(ref_pos, boid.pos)
+                dot_product = np.dot(ref_boid.vel, boid.vel)
+                adjusted = 0.5 * dot_product * dist + dist
+                dist_vec = boid.pos - ref_boid.pos
+                if dist_vec.dot(ref_boid.vel) >= 0:
+                    adjusted = max(dot_product, -dot_product) * dist + dist
+                if dist < 15:
+                    self.boids.remove(boid)
+                    self.normal_boids.remove(boid)
+                elif closest is None:
+                    closest = boid
+                    min_dist = adjusted
+                else:
+                    if adjusted < min_dist:
+                        min_dist = adjusted
+                        closest = boid
         return closest
 
     def pursue(self, target_boid):
@@ -236,7 +263,7 @@ class Flock(pygame.sprite.Sprite):
         return [boid.rect.center for boid in boid_sprite_list] 
 
     def update_neighborhoods(self):
-        from sklearn.cluster import DBSCAN
+        
 
         self.boid_neighborhoods = {}
         self.boid_labels = {}
