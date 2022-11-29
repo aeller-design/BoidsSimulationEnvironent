@@ -1,10 +1,13 @@
 """Flock class."""
+from difflib import get_close_matches
 import pygame
 import numpy as np
 from . import params, utils
-from .boid import Boid, LeaderBoid
+from .boid import Boid, LeaderBoid, PredatorBoid
 from .obstacle import Obstacle
 from .foodSource import FoodSource
+from sklearn.cluster import DBSCAN
+import math
 
 
 class Flock(pygame.sprite.Sprite):
@@ -14,6 +17,7 @@ class Flock(pygame.sprite.Sprite):
         super().__init__()
         self.normal_boids = pygame.sprite.Group()
         self.leader_boid = pygame.sprite.GroupSingle()
+        self.predator_boids = pygame.sprite.Group()
         self.boids = pygame.sprite.Group()
         self.obstacles = pygame.sprite.Group()
         self.foodElements = pygame.sprite.Group()
@@ -26,7 +30,7 @@ class Flock(pygame.sprite.Sprite):
             'align': False,
             'separate': False,
         }
-        self.kinds = ['normal-boid', 'leader-boid', 'obstacle', 'food source']
+        self.kinds = ['normal-boid', 'leader-boid', 'obstacle', 'food source', 'predator-boid']
         self.add_kind = 'normal-boid'
 
     def switch_element(self):
@@ -51,6 +55,9 @@ class Flock(pygame.sprite.Sprite):
             self.obstacles.add(Obstacle(pos=pos))
         elif self.add_kind == 'food source':
             self.foodElements.add(FoodSource(pos=pos))
+        elif self.add_kind == 'predator-boid':
+            self.predator_boids.add(PredatorBoid(pos=np.array(pos), vel=vel))
+            self.boids.add(self.predator_boids)
 
     def remain_in_screen(self):
         for boid in self.boids:
@@ -93,6 +100,55 @@ class Flock(pygame.sprite.Sprite):
         t = int(utils.norm(target_pos - boid.pos) / params.BOID_MAX_SPEED)
         future_pos = target_pos + t * target_vel
         self.seek_single(future_pos, boid)
+
+    def pursue_prey(self, predator):
+        # closest = self.get_closest(predator)
+        closest = self.get_closest_aligned(predator)
+        if closest is not None:
+            self.pursue_single(closest.pos, closest.vel, predator)
+
+    def get_closest(self, ref_boid):
+        closest = None
+        min_dist = None
+        ref_pos = ref_boid.pos
+        for boid in self.get_neighbors(ref_boid):
+            if boid in self.normal_boids:
+                dist = utils.dist(ref_pos, boid.pos)
+                if dist < 15:
+                    self.boids.remove(boid)
+                    self.normal_boids.remove(boid)
+                elif closest is None:
+                    closest = boid
+                    min_dist = dist
+                else:
+                    if dist < min_dist:
+                        min_dist = dist
+                        closest = boid
+        return closest
+
+    def get_closest_aligned(self, ref_boid):
+        closest = None
+        min_dist = None
+        ref_pos = ref_boid.pos
+        for boid in self.get_neighbors(ref_boid):
+            if boid in self.normal_boids:
+                dist = utils.dist(ref_pos, boid.pos)
+                dot_product = np.dot(ref_boid.vel, boid.vel)
+                adjusted = 0.5 * dot_product * dist + dist
+                dist_vec = boid.pos - ref_boid.pos
+                if dist_vec.dot(ref_boid.vel) >= 0:
+                    adjusted = max(dot_product, -dot_product) * dist + dist
+                if dist < 15:
+                    self.boids.remove(boid)
+                    self.normal_boids.remove(boid)
+                elif closest is None:
+                    closest = boid
+                    min_dist = adjusted
+                else:
+                    if adjusted < min_dist:
+                        min_dist = adjusted
+                        closest = boid
+        return closest
 
     def pursue(self, target_boid):
         """Make all normal boids pursue a target boid with anticipation."""
@@ -158,7 +214,7 @@ class Flock(pygame.sprite.Sprite):
     def separate_single(self, boid):
         number_of_neighbors = 0
         force = np.zeros(2)
-        for other_boid in self.boids:
+        for other_boid in self.get_neighbors(boid):
             if boid == other_boid:
                 continue
             elif pygame.sprite.collide_rect(boid, other_boid):
@@ -170,6 +226,7 @@ class Flock(pygame.sprite.Sprite):
 
     def separate(self):
         for boid in self.boids:
+            #print(self.get_neighbors(boid))
             self.separate_single(boid)
 
     def follow_leader(self, leader):
@@ -191,22 +248,12 @@ class Flock(pygame.sprite.Sprite):
         r2 = params.ALIGN_RADIUS * params.ALIGN_RADIUS
         # find the neighbors
         boids = list(self.normal_boids)
-        neighbors = [[] for boid in boids]
         for i, boid in enumerate(boids):
-            for j, other_boid in enumerate(boids):
-                if j in neighbors[i]:
-                    continue
-                elif boid == other_boid:
-                    continue
-                elif utils.dist2(boid.pos, other_boid.pos) < r2:
-                    neighbors[i].append(j)
-                    neighbors[j].append(i)
-        for i, boid in enumerate(boids):
-            number_of_neighbors = len(neighbors[i])
+            number_of_neighbors = len(self.get_neighbors(boid))
             if number_of_neighbors:
                 desired = np.zeros(2)
-                for j in neighbors[i]:
-                    desired += boids[j].vel
+                for j in self.get_neighbors(boid):
+                    desired += j.vel
                 boid.steer(desired / number_of_neighbors - boid.vel)
 
     def flock(self):
@@ -215,13 +262,47 @@ class Flock(pygame.sprite.Sprite):
         for boid in self.boids:
             self.separate_single(boid)
 
+    def get_boids_coords(self):
+        boid_sprite_list = self.boids.sprites()
+        return [boid.rect.center for boid in boid_sprite_list] 
+
+    def update_neighborhoods(self):
+        
+
+        self.boid_neighborhoods = {}
+        self.boid_labels = {}
+        boid_coords_list = self.get_boids_coords()
+        #this_boid_neighborhood = self.boid_neighnorhoods[(boid.x,boid.y)]
+        clustering = DBSCAN(eps=100, min_samples=2).fit(boid_coords_list)
+
+        for label in np.unique(clustering.labels_):
+            self.boid_neighborhoods[label] = {}
+
+        i = 0
+        for boid in self.boids:  
+            #print(i)
+            #print(np.unique(clustering.labels_))
+            self.boid_labels[boid] = clustering.labels_[i]          
+            self.boid_neighborhoods[clustering.labels_[i]][boid] = (boid,label)
+            i = i + 1
+        #print(self.boid_neighborhoods)
+        #print(self.boid_labels)
+
+    def get_neighbors(self, boid):
+        return self.boid_neighborhoods[self.boid_labels[boid]].keys()
+
     def update(self, motion_event, click_event):
+        if len(self.boids) > 1:
+            self.update_neighborhoods()
+
         # apply steering behaviours
         if self.leader_boid:
             target = self.leader_boid.sprite
             self.behaviours['pursue'] and self.pursue(target)
             self.behaviours['escape'] and self.escape(target)
             self.behaviours['follow leader'] and self.follow_leader(target)
+        for boid in self.predator_boids:
+            self.pursue_prey(boid)
         self.behaviours['wander'] and self.wander()
         if self.behaviours['avoid collision'] and self.obstacles:
             self.avoid_collision()
@@ -230,7 +311,7 @@ class Flock(pygame.sprite.Sprite):
         self.remain_in_screen()
         # update all boids
         for boid in self.boids:
-            boid.update()
+            boid.update(motion_event, click_event)
 
     def display(self, screen):
         for foodSource in self.foodElements:
