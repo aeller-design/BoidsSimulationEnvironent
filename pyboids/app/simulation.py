@@ -35,8 +35,10 @@ class Simulation:
         msg = "Number of "
         if "boid" in self.flock.add_kind:
             msg += "boids: {}".format(len(self.flock.boids))
-        else:
+        elif "obstacle" in self.flock.add_kind:
             msg += "obstacles: {}".format(len(self.flock.obstacles))
+        else:
+            msg += "food elements: {}".format(len(self.flock.foodElements))
         self.temp_message.add(
             gui.TempMessage(pos=(6, 1), text=msg))
 

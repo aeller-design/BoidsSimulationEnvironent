@@ -4,6 +4,7 @@ import numpy as np
 from . import params, utils
 from .boid import Boid, LeaderBoid
 from .obstacle import Obstacle
+from .foodSource import FoodSource
 
 
 class Flock(pygame.sprite.Sprite):
@@ -15,6 +16,7 @@ class Flock(pygame.sprite.Sprite):
         self.leader_boid = pygame.sprite.GroupSingle()
         self.boids = pygame.sprite.Group()
         self.obstacles = pygame.sprite.Group()
+        self.foodElements = pygame.sprite.Group()
         self.behaviours = {
             'pursue': False,
             'escape': False,
@@ -24,7 +26,7 @@ class Flock(pygame.sprite.Sprite):
             'align': False,
             'separate': False,
         }
-        self.kinds = ['normal-boid', 'leader-boid', 'obstacle']
+        self.kinds = ['normal-boid', 'leader-boid', 'obstacle', 'food source']
         self.add_kind = 'normal-boid'
 
     def switch_element(self):
@@ -32,9 +34,9 @@ class Flock(pygame.sprite.Sprite):
         self.add_kind = self.kinds[0]
 
     def add_element(self, pos):
-        """Add a boid at pos.
+        """Add an entity at pos.
 
-        The type of boid is the current add_kind value.
+        The type of entity is the current add_kind value.
         """
         angle = np.pi * (2 * np.random.rand() - 1)
         vel = params.BOID_MAX_SPEED * np.array([np.cos(angle), np.sin(angle)])
@@ -47,6 +49,8 @@ class Flock(pygame.sprite.Sprite):
             self.boids.add(self.leader_boid)
         elif self.add_kind == 'obstacle':
             self.obstacles.add(Obstacle(pos=pos))
+        elif self.add_kind == 'food source':
+            self.foodElements.add(FoodSource(pos=pos))
 
     def remain_in_screen(self):
         for boid in self.boids:
@@ -229,6 +233,8 @@ class Flock(pygame.sprite.Sprite):
             boid.update()
 
     def display(self, screen):
+        for foodSource in self.foodElements:
+            foodSource.display(screen)
         for obstacle in self.obstacles:
             obstacle.display(screen)
         for boid in self.boids:
