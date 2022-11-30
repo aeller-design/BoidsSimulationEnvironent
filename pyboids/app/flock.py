@@ -311,7 +311,9 @@ class Flock(pygame.sprite.Sprite):
         self.remain_in_screen()
         # update all boids
         for boid in self.boids:
-            boid.update(motion_event, click_event)
+            if not boid.update(motion_event, click_event):
+                self.boids.remove(boid)
+                self.normal_boids.remove(boid)
 
     def display(self, screen):
         for foodSource in self.foodElements:
