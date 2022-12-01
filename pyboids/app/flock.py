@@ -129,8 +129,8 @@ class Flock(pygame.sprite.Sprite):
         self.seek_single(future_pos, boid)
 
     def pursue_prey(self, predator):
-        # closest = self.get_closest(predator)
-        closest = self.get_closest_aligned(predator)
+        closest = self.get_closest(predator)
+        # closest = self.get_closest_aligned(predator)
         if closest is not None:
             self.pursue_single(closest.pos, closest.vel, predator)
 
@@ -144,6 +144,7 @@ class Flock(pygame.sprite.Sprite):
                 if dist < 15:
                     self.boids.remove(boid)
                     self.normal_boids.remove(boid)
+                    ref_boid.hunger = params.MAX_HUNGER
                 elif closest is None:
                     closest = boid
                     min_dist = dist
@@ -326,6 +327,7 @@ class Flock(pygame.sprite.Sprite):
             self.update_neighborhoods()
 
         # apply steering behaviours
+        self.flee_predators()
         if self.leader_boid:
             target = self.leader_boid.sprite
             self.behaviours['pursue'] and self.pursue(target)
@@ -339,7 +341,6 @@ class Flock(pygame.sprite.Sprite):
         self.behaviours['align'] and self.align()
         self.behaviours['separate'] and self.separate()
         self.remain_in_screen()
-        self.flee_predators()
         # update all boids
         for boid in self.boids:
             if boid in self.normal_boids:

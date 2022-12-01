@@ -17,7 +17,7 @@ class FoodSource(pygame.sprite.Sprite):
         self.image, self.rect = assets.image_with_rect(self.getImage())
         self.pos = pos if pos is not None else np.zeros(2)
         self.rect = self.image.get_rect(center=self.pos)
-        self.health = 10
+        self.health = params.FOOD_DURATION
 
     def getImage(self):
         item = random.choices(self.images_list, k=1)[0]

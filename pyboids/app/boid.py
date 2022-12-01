@@ -105,3 +105,25 @@ class PredatorBoid(Boid):
     def __init__(self, pos=None, vel=None, mass=20):
         super().__init__(pos, vel, mass)
         self.hunger = params.MAX_PREDATOR_HUNGER
+
+    def update(self, motion, click):
+        self.vel = utils.truncate(
+            self.vel + self.steering, params.PREDATOR_MAX_SPEED)
+        self.pos = self.pos + self.vel
+        self.hunger -= params.HUNGER_LOSS
+        if self.last_food is not None:
+            if not self.last_food.rect.colliderect(self.rect):
+                self.last_food = None
+                self.eating = True
+        if self.hunger <= 0:
+            self.kill()
+        return True
+        
+    def steer(self, force, alt_max=None):
+        """Add a force to the current steering force."""
+        # limit the steering each time we add a force
+        if alt_max is not None:
+            self.steering += utils.truncate(force / self.mass, alt_max)
+        else:
+            self.steering += utils.truncate(
+                force / self.mass, params.PREDATOR_MAX_FORCE)
