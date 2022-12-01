@@ -31,6 +31,8 @@ class Boid(pygame.sprite.Sprite):
         self.steering = np.zeros(2)
         self.wandering_angle = utils.randrange(-np.pi, np.pi)
         self.hunger = params.MAX_HUNGER
+        self.last_food = None
+        self.eating = True
 
     @property
     def pos(self):
@@ -70,6 +72,10 @@ class Boid(pygame.sprite.Sprite):
             self.vel + self.steering, params.BOID_MAX_SPEED)
         self.pos = self.pos + self.vel
         self.hunger -= params.HUNGER_LOSS
+        if self.last_food is not None:
+            if not self.last_food.rect.colliderect(self.rect):
+                self.last_food = None
+                self.eating = True
         if self.hunger <= 0:
             self.kill()
         return True

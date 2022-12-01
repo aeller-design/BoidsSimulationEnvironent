@@ -17,6 +17,7 @@ class FoodSource(pygame.sprite.Sprite):
         self.image, self.rect = assets.image_with_rect(self.getImage())
         self.pos = pos if pos is not None else np.zeros(2)
         self.rect = self.image.get_rect(center=self.pos)
+        self.health = 10
 
     def getImage(self):
         item = random.choices(self.images_list, k=1)[0]
@@ -24,3 +25,8 @@ class FoodSource(pygame.sprite.Sprite):
 
     def display(self, screen):
         screen.blit(self.image, self.rect)
+
+    def update(self):
+        if self.health <= 0:
+            self.kill()
+        return True

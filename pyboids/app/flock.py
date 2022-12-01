@@ -83,6 +83,28 @@ class Flock(pygame.sprite.Sprite):
         for boid in self.normal_boids:
             self.seek_single(target_boid, boid)
 
+    def seek_food(self, boid):
+        if len(self.foodElements) <= 0:
+            return
+        else:
+            food = self.closest_food(boid.pos)
+            if food.rect.colliderect(boid.rect) and boid.eating:
+                food.health -= 1
+                boid.hunger = params.MAX_HUNGER
+                boid.last_food = food
+                boid.eating = False
+            self.seek_single(food.pos, boid)
+
+    def closest_food(self, pos):
+        closest = None
+        min_dist = 999999
+        for food in self.foodElements:
+            dist = utils.dist(pos, food.pos)
+            if dist < min_dist:
+                closest = food
+                min_dist = dist
+        return closest
+
     def flee_single(self, target_pos, boid):
         too_close = utils.dist2(boid.pos, target_pos) < params.R_FLEE**2
         if too_close:
@@ -314,9 +336,13 @@ class Flock(pygame.sprite.Sprite):
         self.remain_in_screen()
         # update all boids
         for boid in self.boids:
+            if boid in self.normal_boids:
+                self.seek_food(boid)
             if not boid.update(motion_event, click_event):
                 self.boids.remove(boid)
                 self.normal_boids.remove(boid)
+        for food in self.foodElements:
+            food.update()
 
     def display(self, screen):
         for foodSource in self.foodElements:
