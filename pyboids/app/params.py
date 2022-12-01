@@ -82,6 +82,7 @@ N_CPU = os.cpu_count()
 # Hunger Interval Ticks
 HUNGER_INTERVAL_TICK = 3000
 # Max Hunger
-MAX_HUNGER = 100
+MAX_HUNGER = 500
+MAX_PREDATOR_HUNGER = 1000
 # Hunger loss on tick
 HUNGER_LOSS = 1

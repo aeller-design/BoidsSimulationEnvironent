@@ -69,10 +69,9 @@ class Boid(pygame.sprite.Sprite):
         self.vel = utils.truncate(
             self.vel + self.steering, params.BOID_MAX_SPEED)
         self.pos = self.pos + self.vel
-        if click and click.type == pygame.USEREVENT :
-            self.hunger -= params.HUNGER_LOSS
-            if self.hunger <= 0:
-                return False
+        self.hunger -= params.HUNGER_LOSS
+        if self.hunger <= 0:
+            self.kill()
         return True
 
     def display(self, screen, debug=False):
@@ -96,3 +95,7 @@ class LeaderBoid(Boid):
 
 class PredatorBoid(Boid):
     image_file = 'predator-boid.png'
+    
+    def __init__(self, pos=None, vel=None, mass=20):
+        super().__init__(pos, vel, mass)
+        self.hunger = params.MAX_PREDATOR_HUNGER

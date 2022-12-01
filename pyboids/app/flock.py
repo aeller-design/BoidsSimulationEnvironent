@@ -130,6 +130,8 @@ class Flock(pygame.sprite.Sprite):
         closest = None
         min_dist = None
         ref_pos = ref_boid.pos
+        if len(self.normal_boids) <= 0:
+            return None
         for boid in self.get_neighbors(ref_boid):
             if boid in self.normal_boids:
                 dist = utils.dist(ref_pos, boid.pos)
@@ -141,6 +143,7 @@ class Flock(pygame.sprite.Sprite):
                 if dist < 15:
                     self.boids.remove(boid)
                     self.normal_boids.remove(boid)
+                    ref_boid.hunger = params.MAX_HUNGER
                 elif closest is None:
                     closest = boid
                     min_dist = adjusted

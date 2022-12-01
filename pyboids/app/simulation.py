@@ -27,7 +27,6 @@ class Simulation:
         self.to_display = pygame.sprite.Group()
         self.temp_message = pygame.sprite.GroupSingle()
         self.fps_message = gui.FPSMessage(pos=(11, 0.5), text="FPS: ...")
-        self.hungerTickEvent = pygame.USEREVENT
 
     def add_element(self, pos):
         self.flock.add_element(pos)
@@ -48,9 +47,6 @@ class Simulation:
 
     def toggle_debug(self):
         params.DEBUG = not params.DEBUG
-
-    def initHunger(self):   
-        pygame.time.set_timer(self.hungerTickEvent, params.HUNGER_INTERVAL_TICK)
 
     def update(self, motion_event, click_event):
         self.to_update.update(motion_event, click_event)
@@ -81,7 +77,6 @@ class Simulation:
             text="Add entities and get steering !",
             font=params.H3_FONT)
         )
-        self.initHunger()
         self.to_update = pygame.sprite.Group(
             self.flock,
             gui.ToggleButton(
@@ -147,8 +142,6 @@ class Simulation:
                         button_to_function[event.button](self, event)
                 elif event.type == pygame.MOUSEMOTION:
                     motion_event = event
-                elif event.type == self.hungerTickEvent:
-                    click_event = event
             self.update(motion_event, click_event)
             self.fps_message.update(dt)
             self.temp_message.update(motion_event, click_event)
