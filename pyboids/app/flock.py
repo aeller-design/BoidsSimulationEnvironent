@@ -8,6 +8,7 @@ from .obstacle import Obstacle
 from .foodSource import FoodSource
 from sklearn.cluster import DBSCAN
 import math
+import random
 
 
 class Flock(pygame.sprite.Sprite):
@@ -54,7 +55,7 @@ class Flock(pygame.sprite.Sprite):
         elif self.add_kind == 'obstacle':
             self.obstacles.add(Obstacle(pos=pos))
         elif self.add_kind == 'food source':
-            self.foodElements.add(FoodSource(pos=pos))
+            self.foodElements.add(FoodSource(pos=(random.randint(0, params.SCREEN_WIDTH), random.randint(0, params.SCREEN_HEIGHT))))
         elif self.add_kind == 'predator-boid':
             self.predator_boids.add(PredatorBoid(pos=np.array(pos), vel=vel))
             self.boids.add(self.predator_boids)
