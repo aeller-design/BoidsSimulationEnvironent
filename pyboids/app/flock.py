@@ -118,6 +118,10 @@ class Flock(pygame.sprite.Sprite):
         for boid in self.normal_boids:
             self.flee_single(target_boid, boid)
 
+    def flee_predators(self):
+        for predator in self.predator_boids:
+            self.flee(predator.pos)
+
     def pursue_single(self, target_pos, target_vel, boid):
         t = int(utils.norm(target_pos - boid.pos) / params.BOID_MAX_SPEED)
         future_pos = target_pos + t * target_vel
@@ -334,6 +338,7 @@ class Flock(pygame.sprite.Sprite):
         self.behaviours['align'] and self.align()
         self.behaviours['separate'] and self.separate()
         self.remain_in_screen()
+        self.flee_predators()
         # update all boids
         for boid in self.boids:
             if boid in self.normal_boids:
